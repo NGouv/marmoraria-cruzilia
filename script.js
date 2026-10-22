@@ -4,85 +4,132 @@ document.documentElement.classList.add('js-motion');
 const header = document.querySelector('.site-header');
 const menuToggle = document.querySelector('.menu-toggle');
 const navigation = document.querySelector('.primary-navigation');
-const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+const motionPreference = window.matchMedia(
+  '(prefers-reduced-motion: reduce)'
+);
 
-// Cabeçalho ao rolar a página
+// ========================================
+// CABEÇALHO AO ROLAR A PÁGINA
+// ========================================
+
 function updateHeader() {
   if (!header) return;
-  header.classList.toggle('scrolled', window.scrollY > 24);
+
+  header.classList.toggle('is-scrolled', window.scrollY > 24);
 }
 
 updateHeader();
-window.addEventListener('scroll', updateHeader, { passive: true });
 
-// Menu mobile
+window.addEventListener('scroll', updateHeader, {
+  passive: true
+});
+
+// ========================================
+// MENU MOBILE
+// ========================================
+
 function closeMenu() {
   if (!menuToggle || !navigation) return;
 
   menuToggle.setAttribute('aria-expanded', 'false');
   menuToggle.setAttribute('aria-label', 'Abrir menu');
-  navigation.classList.remove('open');
+
+  navigation.classList.remove('is-open');
   document.body.classList.remove('menu-open');
 }
 
 if (menuToggle && navigation) {
   menuToggle.addEventListener('click', () => {
-    const isOpen = menuToggle.getAttribute('aria-expanded') === 'true';
+    const isOpen =
+      menuToggle.getAttribute('aria-expanded') === 'true';
 
     menuToggle.setAttribute('aria-expanded', String(!isOpen));
+
     menuToggle.setAttribute(
       'aria-label',
       isOpen ? 'Abrir menu' : 'Fechar menu'
     );
 
-    navigation.classList.toggle('open', !isOpen);
+    navigation.classList.toggle('is-open', !isOpen);
     document.body.classList.toggle('menu-open', !isOpen);
   });
 
   navigation.addEventListener('click', (event) => {
-    if (event.target.closest('a')) closeMenu();
+    if (event.target.closest('a')) {
+      closeMenu();
+    }
   });
 
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 760) closeMenu();
+    if (window.innerWidth > 760) {
+      closeMenu();
+    }
   });
 }
 
-// Ano automático no rodapé
+// ========================================
+// ANO AUTOMÁTICO NO RODAPÉ
+// ========================================
+
 const year = document.querySelector('#current-year');
 
 if (year) {
   year.textContent = new Date().getFullYear();
 }
 
-// Animações de entrada
+// ========================================
+// ANIMAÇÕES DE ENTRADA
+// ========================================
+
 const revealItems = document.querySelectorAll('.reveal');
 
-if ('IntersectionObserver' in window && !motionPreference.matches) {
+if (motionPreference.matches) {
+  revealItems.forEach((item) => {
+    item.classList.add('is-visible');
+  });
+} else if ('IntersectionObserver' in window) {
   const revealObserver = new IntersectionObserver(
     (entries, observer) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
+          entry.target.classList.add('is-visible');
           observer.unobserve(entry.target);
         }
       });
     },
     {
-      threshold: 0.12,
-      rootMargin: '0px 0px -30px 0px'
+      threshold: 0.08,
+      rootMargin: '0px 0px -20px 0px'
     }
   );
 
-  revealItems.forEach((item) => revealObserver.observe(item));
+  revealItems.forEach((item) => {
+    revealObserver.observe(item);
+  });
 } else {
-  revealItems.forEach((item) => item.classList.add('visible'));
+  revealItems.forEach((item) => {
+    item.classList.add('is-visible');
+  });
 }
 
-// Galeria com visualização ampliada
-const galleryItems = [
-  ...document.querySelectorAll('.gallery-item')
-];
+// Garante que elementos não permaneçam escondidos após o carregamento.
+window.addEventListener('load', () => {
+  revealItems.forEach((item) => {
+    const rect = item.getBoundingClientRect();
+
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      item.classList.add('is-visible');
+    }
+  });
+});
+
+// ========================================
+// GALERIA COM IMAGENS AMPLIADAS
+// ========================================
+
+const galleryItems = Array.from(
+  document.querySelectorAll('.gallery-item')
+);
 
 const lightbox = document.querySelector('.lightbox');
 
@@ -102,18 +149,19 @@ if (lightbox && galleryItems.length > 0) {
 
     const button = galleryItems[activeGalleryIndex];
     const image = button.querySelector('img');
-    const heading = button.closest('.gallery-group')?.querySelector('h3');
+    const heading = button
+      .closest('.gallery-group')
+      ?.querySelector('h3');
 
     if (!image || !lightboxImage) return;
 
     lightboxImage.src = image.currentSrc || image.src;
     lightboxImage.alt = image.alt;
 
-    // Mantém somente o título da galeria como legenda
     if (lightboxCaption) {
       lightboxCaption.textContent = heading
         ? heading.textContent.trim()
-        : '';
+        : image.alt;
     }
   }
 
@@ -121,23 +169,34 @@ if (lightbox && galleryItems.length > 0) {
     lastFocusedElement = document.activeElement;
 
     showGalleryImage(index);
-    lightbox.classList.add('active');
-    lightbox.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('lightbox-open');
 
-    if (closeButton) closeButton.focus();
+    lightbox.classList.add('is-open');
+    lightbox.setAttribute('aria-hidden', 'false');
+
+    document.body.classList.add('no-scroll');
+
+    if (closeButton) {
+      closeButton.focus();
+    }
   }
 
   function closeLightbox() {
-    lightbox.classList.remove('active');
-    lightbox.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('lightbox-open');
+    if (!lightbox.classList.contains('is-open')) return;
 
-    if (lastFocusedElement) lastFocusedElement.focus();
+    lightbox.classList.remove('is-open');
+    lightbox.setAttribute('aria-hidden', 'true');
+
+    document.body.classList.remove('no-scroll');
+
+    if (lastFocusedElement) {
+      lastFocusedElement.focus();
+    }
   }
 
   galleryItems.forEach((item, index) => {
-    item.addEventListener('click', () => openLightbox(index));
+    item.addEventListener('click', () => {
+      openLightbox(index);
+    });
   });
 
   if (closeButton) {
@@ -157,19 +216,25 @@ if (lightbox && galleryItems.length > 0) {
   }
 
   lightbox.addEventListener('click', (event) => {
-    if (event.target === lightbox) closeLightbox();
+    if (event.target === lightbox) {
+      closeLightbox();
+    }
   });
 
   document.addEventListener('keydown', (event) => {
+    const isLightboxOpen =
+      lightbox.classList.contains('is-open');
+
     if (event.key === 'Escape') {
-      if (lightbox.classList.contains('active')) {
+      if (isLightboxOpen) {
         closeLightbox();
       }
 
       closeMenu();
+      return;
     }
 
-    if (!lightbox.classList.contains('active')) return;
+    if (!isLightboxOpen) return;
 
     if (event.key === 'ArrowLeft') {
       showGalleryImage(activeGalleryIndex - 1);
@@ -179,15 +244,32 @@ if (lightbox && galleryItems.length > 0) {
       showGalleryImage(activeGalleryIndex + 1);
     }
 
-    if (event.key === 'Tab' && closeButton && previousButton && nextButton) {
-      const focusable = [closeButton, previousButton, nextButton];
+    // Mantém o foco dentro da galeria aberta.
+    if (
+      event.key === 'Tab' &&
+      closeButton &&
+      previousButton &&
+      nextButton
+    ) {
+      const focusable = [
+        closeButton,
+        previousButton,
+        nextButton
+      ];
+
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
-      if (event.shiftKey && document.activeElement === first) {
+      if (
+        event.shiftKey &&
+        document.activeElement === first
+      ) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (
+        !event.shiftKey &&
+        document.activeElement === last
+      ) {
         event.preventDefault();
         first.focus();
       }
